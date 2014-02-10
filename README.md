@@ -8,6 +8,5 @@ flume1.4的source类型中的*spooldir*有一些bug, 如空文件, 或者在解�
 ## 使用方法
 代码打包后, 建议将生成的jar放入flume-ng agent的插件目录.         
 同时, 在flume的配置文件指定source的type. 例如对源名为agent_name.sources.src_name, 指定       
-`agent_name.sources.src_name.type = org.flume.plugin.spooldir.RobustSpoolDirectorySource`
-
-具体的例子可以参看: [source_plugin_deploy_example]()
+`agent_name.sources.src_name.type = org.flume.plugin.spooldir.RobustSpoolDirectorySource`      
+`agent_crw.sources.page_s1.fileModifiedIntervalMS = 5000`   # 这里添加的策略是: 如果文件在5秒(默认是10分钟)内修改过, 则不处理        
