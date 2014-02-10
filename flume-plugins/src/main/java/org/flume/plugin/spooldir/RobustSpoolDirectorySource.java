@@ -38,6 +38,7 @@ public class RobustSpoolDirectorySource extends AbstractSource implements
     private Context deserializerContext;
     private String deletePolicy;
     private String inputCharset;
+    private int fileModifiedInterval;
 
     private SourceCounter sourceCounter;
     RobustReliableSpoolingFileEventReader reader;
@@ -95,6 +96,7 @@ public class RobustSpoolDirectorySource extends AbstractSource implements
         trackerDirPath = context.getString(TRACKER_DIR, DEFAULT_TRACKER_DIR);
         deserializerType = context.getString(DESERIALIZER, DEFAULT_DESERIALIZER);
         deserializerContext = new Context(context.getSubProperties(DESERIALIZER + "."));
+        fileModifiedInterval = context.getInteger("fileModifiedIntervalMS", 600000);
 
         // "Hack" to support backwards compatibility with previous generation of
         // spooling directory source, which did not support deserializers
@@ -122,7 +124,7 @@ public class RobustSpoolDirectorySource extends AbstractSource implements
         public void run() {
             try {
                 while (true) {
-                    List<Event> events = reader.readEvents(batchSize);
+                    List<Event> events = reader.readEvents(batchSize, fileModifiedInterval);
                     if (events.isEmpty()) {
                         break;
                     }
