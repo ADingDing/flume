@@ -181,6 +181,10 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
     }
 
     public List<Event> readEvents(int numEvents) throws IOException {
+        return readEvents(numEvents, 0);
+    }
+
+    public List<Event> readEvents(int numEvents, int fileModifiedInterval) throws IOException {
         if (!committed) {
             if (!currentFile.isPresent()) {
                 throw new IllegalStateException("File should not roll when " +
@@ -191,7 +195,7 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
         } else {
             // Check if new files have arrived since last call
             if (!currentFile.isPresent()) {
-                currentFile = getNextFile();
+                currentFile = getNextFile(fileModifiedInterval);
             }
             // Return empty list if no new files
             if (!currentFile.isPresent()) {
@@ -206,7 +210,7 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
      * If so, try to roll to the next file, if there is one. */
         if (events.isEmpty()) {
             retireCurrentFile();
-            currentFile = getNextFile();
+            currentFile = getNextFile(fileModifiedInterval);
             if (!currentFile.isPresent()) {
                 return Collections.emptyList();
             }
@@ -362,7 +366,7 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
      * files are equally old, the file name with lower lexicographical value is
      * returned. If the directory is empty, this will return an absent option.
      */
-    private Optional<FileInfo> getNextFile() {
+    private Optional<FileInfo> getNextFile(final int interval) {
     /* Filter to exclude finished or hidden files */
         FileFilter filter = new FileFilter() {
             public boolean accept(File candidate) {
@@ -371,7 +375,7 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
                         (fileName.endsWith(completedSuffix)) ||
                         (fileName.startsWith(".")) ||
                         ignorePattern.matcher(fileName).matches() ||
-                        (System.currentTimeMillis() - candidate.lastModified() < 600000)) {
+                        (System.currentTimeMillis() - candidate.lastModified() < interval)) {
                     return false;
                 }
                 return true;
