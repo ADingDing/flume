@@ -455,6 +455,7 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
                 EventDeserializer deserializer = EventDeserializerFactory.getInstance
                         (deserializerType, deserializerContext, in);
 
+                logger.info("begin to process file {}", nextFile);
                 return Optional.of(new FileInfo(nextFile, deserializer));
             } catch (FileNotFoundException e) {
                 // File could have been deleted in the interim
