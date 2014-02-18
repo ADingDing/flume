@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.flume.Context;
@@ -253,6 +254,14 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
         }
     }
 
+    private void Sleep(long seconds){
+        try {
+            TimeUnit.SECONDS.sleep(seconds);
+        } catch (InterruptedException e) {
+            return;
+        }
+    }
+
     /**
      * Closes currentFile and attempt to rename it.
      *
@@ -272,13 +281,13 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
         // Verify that spooling assumptions hold
         if (fileToRoll.lastModified() != currentFile.get().getLastModified()) {
             String message = "File has been modified since being read: " + fileToRoll;
-            logger.info(message);
+            logger.warn(message);
             processedFiles.add(fileToRoll.getAbsolutePath());
             return;
         }
         if (fileToRoll.length() != currentFile.get().getLength()) {
             String message = "File has changed size since being read: " + fileToRoll;
-            logger.info(message);
+            logger.warn(message);
             processedFiles.add(fileToRoll.getAbsolutePath());
             return;
         }
@@ -386,14 +395,25 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
                         (fileName.endsWith(completedSuffix)) ||
                         (fileName.startsWith(".")) ||
                         ignorePattern.matcher(fileName).matches() ||
-                        (System.currentTimeMillis() - candidate.lastModified() < interval)
-                        || processedFiles.contains(candidate.getAbsolutePath())) {
+                        (System.currentTimeMillis() - candidate.lastModified() < interval)) {
+                    return false;
+                }
+                if(processedFiles.contains(candidate.getAbsolutePath())){
+                    logger.warn("File has been processed before", candidate);
                     return false;
                 }
                 return true;
             }
         };
-        List<File> candidateFiles = Arrays.asList(spoolDirectory.listFiles(filter));
+        List<File> candidateFiles0 = Arrays.asList(spoolDirectory.listFiles(filter));
+        Sleep(1L);
+        List<File> candidateFiles = new ArrayList<File>();
+        for(File candidate : candidateFiles0){
+            File tmp = new File(candidate.getAbsolutePath());
+            if(tmp.lastModified() == candidate.lastModified() && tmp.length() == candidate.length()){
+                candidateFiles.add(tmp);
+            }
+        }
         if (candidateFiles.isEmpty()) {
             return Optional.absent();
         } else {
