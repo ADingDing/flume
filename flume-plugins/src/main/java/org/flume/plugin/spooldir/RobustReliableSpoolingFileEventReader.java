@@ -73,6 +73,7 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
     /** Always contains the last file from which lines have been read. **/
     private Optional<FileInfo> lastFileRead = Optional.absent();
     private boolean committed = true;
+    private Set<String> processedFiles = new HashSet<String>();
 
     /**
      * Create a RobustReliableSpoolingFileEventReader to watch the given directory.
@@ -214,7 +215,13 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
             if (!currentFile.isPresent()) {
                 return Collections.emptyList();
             }
-            events = currentFile.get().getDeserializer().readEvents(numEvents);
+            try{
+                events = currentFile.get().getDeserializer().readEvents(numEvents);
+            }
+            catch (Exception e){
+                logger.info(e.getMessage());
+                return Collections.emptyList();
+            }
         }
 
         if (annotateFileName) {
@@ -265,11 +272,15 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
         // Verify that spooling assumptions hold
         if (fileToRoll.lastModified() != currentFile.get().getLastModified()) {
             String message = "File has been modified since being read: " + fileToRoll;
-            throw new IllegalStateException(message);
+            logger.info(message);
+            processedFiles.add(fileToRoll.getAbsolutePath());
+            return;
         }
         if (fileToRoll.length() != currentFile.get().getLength()) {
             String message = "File has changed size since being read: " + fileToRoll;
-            throw new IllegalStateException(message);
+            logger.info(message);
+            processedFiles.add(fileToRoll.getAbsolutePath());
+            return;
         }
 
         if (deletePolicy.equalsIgnoreCase(DeletePolicy.NEVER.name())) {
@@ -375,7 +386,8 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
                         (fileName.endsWith(completedSuffix)) ||
                         (fileName.startsWith(".")) ||
                         ignorePattern.matcher(fileName).matches() ||
-                        (System.currentTimeMillis() - candidate.lastModified() < interval)) {
+                        (System.currentTimeMillis() - candidate.lastModified() < interval)
+                        || processedFiles.contains(candidate.getAbsolutePath())) {
                     return false;
                 }
                 return true;
