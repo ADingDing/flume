@@ -406,7 +406,7 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
             }
         };
         List<File> candidateFiles0 = Arrays.asList(spoolDirectory.listFiles(filter));
-        Sleep(1L);
+        Sleep(10L);
         List<File> candidateFiles = new ArrayList<File>();
         for(File candidate : candidateFiles0){
             File tmp = new File(candidate.getAbsolutePath());
