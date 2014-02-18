@@ -406,14 +406,18 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
             }
         };
         List<File> candidateFiles0 = Arrays.asList(spoolDirectory.listFiles(filter));
+        List<Long> candidateFilesLastModified = new ArrayList<Long>();
+        for(File candidate : candidateFiles0){
+            candidateFilesLastModified.add(candidate.lastModified());
+        }
         Sleep(10L);
         List<File> candidateFiles = new ArrayList<File>();
-        for(File candidate : candidateFiles0){
-            File tmp = new File(candidate.getAbsolutePath());
-            if(tmp.lastModified() == candidate.lastModified() && tmp.length() == candidate.length()){
-                candidateFiles.add(candidate);
+        for(int i = 0; i < candidateFilesLastModified.size(); ++i){
+            File tmp = new File(candidateFiles0.get(i).getAbsolutePath());
+            if(tmp.lastModified() == candidateFilesLastModified.get(i)){
+                candidateFiles.add(tmp);
             } else{
-                logger.warn("Candidate file has been changed: {}", candidate);
+                logger.warn("Candidate file has been changed: {}", tmp);
             }
         }
         if (candidateFiles.isEmpty()) {
