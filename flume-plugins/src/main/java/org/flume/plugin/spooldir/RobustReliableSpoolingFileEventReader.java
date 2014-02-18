@@ -399,7 +399,7 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
                     return false;
                 }
                 if(processedFiles.contains(candidate.getAbsolutePath())){
-                    logger.warn("File has been processed before", candidate);
+                    logger.warn("File has been processed before: {}", candidate);
                     return false;
                 }
                 return true;
@@ -411,7 +411,9 @@ public class RobustReliableSpoolingFileEventReader implements ReliableEventReade
         for(File candidate : candidateFiles0){
             File tmp = new File(candidate.getAbsolutePath());
             if(tmp.lastModified() == candidate.lastModified() && tmp.length() == candidate.length()){
-                candidateFiles.add(tmp);
+                candidateFiles.add(candidate);
+            } else{
+                logger.warn("Candidate file has been changed: {}", candidate);
             }
         }
         if (candidateFiles.isEmpty()) {
